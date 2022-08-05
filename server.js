@@ -18,10 +18,14 @@ dotenv.config({
 //` Database Configuration
 require('./database');
 
-const app = require('./app.js');
 
-const { PORT } = process.env;
 
-app.listen(PORT, () => {
+const server  = require('./app.js');
+
+const { PORT } = process.env || 9000
+
+server.listen(PORT, () => {
   _(`Server is running on port ${PORT}`);
 });
+
+
