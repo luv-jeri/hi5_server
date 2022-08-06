@@ -13,6 +13,8 @@ if (process.env.NODE_ENV === 'development') {
   app.use(morgan('dev'));
 }
 
+const socket_user_map = {}; //*  socket ids aur mongo ids map
+
 const io = new Server(server, {
   cors: {
     origin: 'http://localhost:3000',
@@ -35,19 +37,30 @@ io.use(async (socket, next) => {
       return next(new Error('You are registered.', 401)); //* socket.emit("error" ,  error)
     }
 
+    console.log(socket.id);
+
+    socket_user_map[user._id] = socket.id; // # socket id aur mongo id map
+
     socket.user = user;
 
     next();
   } catch (err) {
-    console.log(err);
+    // console.log(err);
   }
 });
 
 io.on('connection', (socket) => {
   console.log('a user connected', socket.id);
 
-  socket.on('test', (msg) => {
-    console.log(msg);
+  socket.on('send_msg', (data) => {
+    console.log(data);
+    console.log('socket_user_map', socket_user_map);
+    const to = socket_user_map[data.to]; // # sokcet id from mongo id
+
+    io.to(to).emit('msg', {
+      msg: data.msg,
+      name: data.name,
+    });
   });
 
   socket.on('disconnect', (socket) => {

@@ -15,10 +15,9 @@ const dotenv = require('dotenv');
 dotenv.config({
   path: './.env',
 });
+
 //` Database Configuration
 require('./database');
-
-
 
 const server  = require('./app.js');
 

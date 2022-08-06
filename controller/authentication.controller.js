@@ -48,21 +48,22 @@ module.exports.signUp = catch_async(async (req, res, next) => {
 });
 
 module.exports.signIn = catch_async(async (req, res, next) => {
-  const { email, username, password } = req.body;
+  const { email, password } = req.body;
 
-  if (!email && !username) {
-    return next(new _Error('Please provide email and username', 400));
-  }
+  console.log('email', email);
+  console.log('password', password);
+
+  // if (!email && !username) {
+  //   return next(new _Error('Please provide email and username', 400));
+  // }
 
   if (!password) {
     return next(new _Error('Please provide password', 400));
   }
 
   const user = await User.findOne({
-    $or: [{ email }, { username }],
+    email,
   }).select('+password');
-
-
 
   if (!user) {
     return next(new _Error('Invalid Email/User', 401));
@@ -79,7 +80,7 @@ module.exports.signIn = catch_async(async (req, res, next) => {
       id: user._id,
       name: user.name,
       email: user.email,
-      username: user.username,
+      // username: user.username,
     },
     process.env.JWT_SECRET,
     {
@@ -160,7 +161,3 @@ module.exports.resetPassword = catch_async(async (req, res, next) => {
     message: 'Password reset successfully',
   });
 });
-
-
-
-

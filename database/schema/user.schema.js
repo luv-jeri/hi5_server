@@ -17,10 +17,10 @@ const userSchema = new Schema(
       lowercase: true,
       validate: [validator.isEmail, 'Please provide a valid email'],
     },
-    username: {
-      type: String,
-      unique: true,
-    },
+    // username: {
+    //   type: String,
+    //   unique: true,
+    // },
     photo: {
       type: String,
     },
