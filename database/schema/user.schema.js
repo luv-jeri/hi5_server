@@ -4,12 +4,25 @@ const bcrypt = require('bcryptjs');
 
 const userSchema = new Schema(
   {
+    socket_id: {
+      type: String,
+    },
     name: {
       type: String,
       required: [true, 'Name is required'],
       minlength: [3, 'Name must be at least 3 characters'],
       maxlength: [20, 'Name must be at most 20 characters'],
     },
+    online: {
+      type: Boolean,
+      default: false,
+    },
+
+    lastSeen: {
+      type: Date, //# time and date of last seen
+      default: Date.now,
+    },
+
     email: {
       type: String,
       required: [true, 'Email is required'],

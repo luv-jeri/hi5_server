@@ -5,13 +5,15 @@ const cors = require('cors');
 const User = require('./database/models/user.model');
 const { createServer } = require('http');
 const { Server } = require('socket.io');
+const upload = require('express-fileupload');
+
 const app = express();
 const server = createServer(app);
 const { promisify } = require('util');
 const jwt = require('jsonwebtoken');
-if (process.env.NODE_ENV === 'development') {
-  app.use(morgan('dev'));
-}
+// if (process.env.NODE_ENV === 'development') {
+//   app.use(morgan('dev'));
+// }
 
 const socket_user_map = {}; //*  socket ids aur mongo ids map
 
@@ -21,6 +23,7 @@ const io = new Server(server, {
   },
 });
 
+// # Authenticate Middleware for socket
 io.use(async (socket, next) => {
   const { token } = socket.handshake.auth || '';
 
@@ -31,40 +34,77 @@ io.use(async (socket, next) => {
       return next(new Error('You are logged out.', 401));
     }
 
-    const user = await User.findById(decoded.id);
-
-    if (!user) {
-      return next(new Error('You are registered.', 401)); //* socket.emit("error" ,  error)
-    }
-
-    console.log(socket.id);
-
-    socket_user_map[user._id] = socket.id; // # socket id aur mongo id map
-
-    socket.user = user;
+    socket.decoded = decoded;
 
     next();
   } catch (err) {
-    // console.log(err);
+    console.log(err);
   }
 });
 
+// //# last seen and socket io set
+io.use(async (socket, next) => {
+  const { decoded } = socket;
+
+  const user = await User.findByIdAndUpdate(
+    decoded.id,
+    {
+      online: true,
+    },
+    {
+      new: true,
+    }
+  );
+
+  //~ MAP socket id and user id
+  socket_user_map[socket.id] = user._id;
+
+  socket.user = user; // #mongodb data
+
+  if (!user) {
+    return next(new Error('You are registered.', 401)); //* socket.emit("error" ,  error)
+  }
+
+  next();
+});
+
 io.on('connection', (socket) => {
+  socket.on('disconnect', (reason) => {
+    const { user, decoded } = socket;
+
+    User.findByIdAndUpdate(user._id, {
+      online: false,
+      lastSeen: Date.now(),
+    }).then(() => {
+      console.log(`${user.name} is offline`);
+    });
+  });
+
   console.log('a user connected', socket.id);
 
-  socket.on('send_msg', (data) => {
+  const fs = require('fs');
+
+  socket.on('file', (data, cb) => {
+    console.log('File', data);
+
+    fs.appendFileSync(data.fileName, data.chunk);
+
+    cb();
+  });
+
+  socket.on('send_msg', async (data) => {
     console.log(data);
     console.log('socket_user_map', socket_user_map);
+
+    // const to_ = await User.findById(data.to);
+    // console.log(to_.socket_id);
+
     const to = socket_user_map[data.to]; // # sokcet id from mongo id
 
     io.to(to).emit('msg', {
       msg: data.msg,
       name: data.name,
     });
-  });
-
-  socket.on('disconnect', (socket) => {
-    console.log('user disconnected', socket.id);
   });
 });
 
@@ -75,10 +115,30 @@ app.use(
   })
 );
 
+app.use(upload());
 app.use(express.json());
 app.use(cookieParser());
 
 app.use('/api/v1/', require('./routes/index.routes'));
+
+app.use('/api/v1/upload', (req, res) => {
+  const { file } = req.files;
+  const { name } = file;
+
+  file.mv(`${__dirname}/public/upload/${name}`, (err) => {
+    if (err) {
+      console.log(err);
+      return res.status(500).send(err);
+    }
+
+    res.send({
+      status: 'success',
+      message: 'File uploaded successfully',
+    });
+  });
+});
+
+app.use(express.static('public'));
 
 // # Global Error Handling Middleware
 app.use((err, req, res, next) => {

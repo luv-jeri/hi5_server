@@ -11,7 +11,7 @@ module.exports.authenticate = catch_async(async (req, res, next) => {
     authorization = req.cookies.authorization;
   }
 
-  __('authorization', authorization);
+  
 
   let token;
 
@@ -41,13 +41,13 @@ module.exports.authenticate = catch_async(async (req, res, next) => {
 module.exports.whoami = catch_async(async (req, res, next) => {
   const { authorization } = req.headers;
 
-  console.log('authorization headers', authorization);
+  
 
   if (!authorization) {
     return next(new _Error('Please login to continue', 400));
   }
 
-  console.log(authorization);
+
 
   const decoded = await promisify(jwt.verify)(authorization, process.env.JWT_SECRET);
 

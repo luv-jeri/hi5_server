@@ -50,8 +50,7 @@ module.exports.signUp = catch_async(async (req, res, next) => {
 module.exports.signIn = catch_async(async (req, res, next) => {
   const { email, password } = req.body;
 
-  console.log('email', email);
-  console.log('password', password);
+
 
   // if (!email && !username) {
   //   return next(new _Error('Please provide email and username', 400));
