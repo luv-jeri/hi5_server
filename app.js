@@ -5,6 +5,7 @@ const cors = require('cors');
 const User = require('./database/models/user.model');
 const { createServer } = require('http');
 const { Server } = require('socket.io');
+
 const upload = require('express-fileupload');
 
 const app = express();
@@ -123,14 +124,15 @@ app.use('/api/v1/', require('./routes/index.routes'));
 
 app.use('/api/v1/upload', (req, res) => {
   const { file } = req.files;
+
   const { name } = file;
 
-  file.mv(`${__dirname}/public/upload/${name}`, (err) => {
+  const fileName = `${Date.now()}_${name}`;
+  file.mv(`${__dirname}/public/upload/${fileName}`, (err) => {
     if (err) {
       console.log(err);
       return res.status(500).send(err);
     }
-
     res.send({
       status: 'success',
       message: 'File uploaded successfully',
@@ -138,7 +140,7 @@ app.use('/api/v1/upload', (req, res) => {
   });
 });
 
-app.use(express.static('public'));
+app.use('/content', express.static('public'));
 
 // # Global Error Handling Middleware
 app.use((err, req, res, next) => {

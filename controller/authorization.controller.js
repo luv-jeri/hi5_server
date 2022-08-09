@@ -41,8 +41,6 @@ module.exports.authenticate = catch_async(async (req, res, next) => {
 module.exports.whoami = catch_async(async (req, res, next) => {
   const { authorization } = req.headers;
 
-  
-
   if (!authorization) {
     return next(new _Error('Please login to continue', 400));
   }

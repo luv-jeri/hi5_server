@@ -43,17 +43,15 @@ module.exports.signUp = catch_async(async (req, res, next) => {
   res.status(200).json({
     status: 'success',
     message: `Welcome ${user.name}`,
-    data: { user, token },
+    data: { token },
   });
 });
 
 module.exports.signIn = catch_async(async (req, res, next) => {
   const { email, password } = req.body;
 
-
-
-  // if (!email && !username) {
-  //   return next(new _Error('Please provide email and username', 400));
+  // if (!email) {
+  //   return next(new _Error('Please provide email ', 400));
   // }
 
   if (!password) {
@@ -97,7 +95,7 @@ module.exports.signIn = catch_async(async (req, res, next) => {
   res.status(200).json({
     status: 'success',
     message: `Welcome back ${user.name}`,
-    data: { user, token },
+    data: { token },
   });
 });
 
@@ -126,6 +124,7 @@ module.exports.forgotPassword = catch_async(async (req, res, next) => {
 
 module.exports.resetPassword = catch_async(async (req, res, next) => {
   const { OTP } = req.query;
+  const { password, confirmPassword } = req.body;
 
   if (!OTP) {
     return next(new _Error('Please provide OTP', 400));
@@ -140,8 +139,6 @@ module.exports.resetPassword = catch_async(async (req, res, next) => {
   if (user.OTPExpiry < Date.now()) {
     return next(new _Error('OTP expired', 404));
   }
-
-  const { password, confirmPassword } = req.body;
 
   if (password !== confirmPassword) {
     return next(new _Error('Passwords do not match 😁😁', 400));
