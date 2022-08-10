@@ -18,6 +18,12 @@ UserSchema.methods.generateOTP = async function () {
   await this.save({ validateBeforeSave: false });
 };
 
+// UserSchema.post('findById', function (docs) {
+//   docs.forEach((doc) => {
+//     console.log('Find Middleware', ` ${process.env.APP_URL}/uploads/${doc.photo}`);
+//   });
+// });
+
 const User = model('user', UserSchema);
 
 module.exports = User;

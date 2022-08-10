@@ -12,9 +12,9 @@ const app = express();
 const server = createServer(app);
 const { promisify } = require('util');
 const jwt = require('jsonwebtoken');
-// if (process.env.NODE_ENV === 'development') {
-//   app.use(morgan('dev'));
-// }
+if (process.env.NODE_ENV === 'development') {
+  app.use(morgan('dev'));
+}
 
 const socket_user_map = {}; //*  socket ids aur mongo ids map
 
@@ -120,6 +120,8 @@ app.use(upload());
 app.use(express.json());
 app.use(cookieParser());
 
+app.use(express.static('public'));
+
 app.use('/api/v1/', require('./routes/index.routes'));
 
 app.use('/api/v1/upload', (req, res) => {
@@ -128,6 +130,7 @@ app.use('/api/v1/upload', (req, res) => {
   const { name } = file;
 
   const fileName = `${Date.now()}_${name}`;
+
   file.mv(`${__dirname}/public/upload/${fileName}`, (err) => {
     if (err) {
       console.log(err);
@@ -135,12 +138,13 @@ app.use('/api/v1/upload', (req, res) => {
     }
     res.send({
       status: 'success',
-      message: 'File uploaded successfully',
+      message: `${fileName} uploaded successfully`,
+      data : fileName
     });
   });
 });
 
-app.use('/content', express.static('public'));
+
 
 // # Global Error Handling Middleware
 app.use((err, req, res, next) => {

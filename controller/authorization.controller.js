@@ -54,6 +54,7 @@ module.exports.whoami = catch_async(async (req, res, next) => {
   }
 
   const user = await User.findById(decoded.id);
+  
 
   res.status(200).json({
     status: 'success',
