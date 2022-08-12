@@ -23,6 +23,30 @@ const userSchema = new Schema(
       default: Date.now,
     },
 
+    requests: [
+      {
+        type: Schema.Types.ObjectId,
+      },
+    ],
+
+    requested: [
+      {
+        type: Schema.Types.ObjectId,
+      },
+    ],
+
+    friend: [
+      {
+        type: Schema.Types.ObjectId,
+      },
+    ],
+
+    blocked: [
+      {
+        type: Schema.Types.ObjectId,
+      },
+    ],
+
     email: {
       type: String,
       required: [true, 'Email is required'],
