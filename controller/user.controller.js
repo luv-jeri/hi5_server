@@ -60,6 +60,9 @@ module.exports.lookup = catch_async(async (req, res, next) => {
     _id: {
       $ne: req.user._id,
     },
+    blocked: {
+      $nin: req.user._id,
+    },
   });
 
   res.status(200).json({
@@ -68,7 +71,3 @@ module.exports.lookup = catch_async(async (req, res, next) => {
     message: 'Retrieved all users',
   });
 });
-
-
-
-

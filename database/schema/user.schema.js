@@ -17,36 +17,29 @@ const userSchema = new Schema(
       type: Boolean,
       default: false,
     },
-
+    push_token: {
+      type: String,
+    },
     lastSeen: {
       type: Date, //# time and date of last seen
       default: Date.now,
     },
-
     requests: [
       {
         type: Schema.Types.ObjectId,
       },
     ],
 
-    requested: [
+    friends: [
       {
         type: Schema.Types.ObjectId,
       },
     ],
-
-    friend: [
-      {
-        type: Schema.Types.ObjectId,
-      },
-    ],
-
     blocked: [
       {
         type: Schema.Types.ObjectId,
       },
     ],
-
     email: {
       type: String,
       required: [true, 'Email is required'],

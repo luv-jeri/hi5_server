@@ -48,7 +48,8 @@ module.exports.signUp = catch_async(async (req, res, next) => {
 });
 
 module.exports.signIn = catch_async(async (req, res, next) => {
-  const { email, password } = req.body;
+  const { email, password, push_token } = req.body;
+  console.log(push_token);
 
   // if (!email) {
   //   return next(new _Error('Please provide email ', 400));
@@ -58,9 +59,14 @@ module.exports.signIn = catch_async(async (req, res, next) => {
     return next(new _Error('Please provide password', 400));
   }
 
-  const user = await User.findOne({
-    email,
-  }).select('+password');
+  const user = await User.findOneAndUpdate(
+    {
+      email,
+    },
+    {
+      push_token,
+    }
+  ).select('+password');
 
   if (!user) {
     return next(new _Error('Invalid Email/User', 401));

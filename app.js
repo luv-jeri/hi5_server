@@ -20,7 +20,12 @@ const socket_user_map = {}; //*  socket ids aur mongo ids map
 
 const io = new Server(server, {
   cors: {
-    origin: 'http://localhost:3000',
+    origin: [
+      'https://localhost:3000/',
+      'http://localhost:3000/',
+      'https://localhost:3000',
+      'http://localhost:3000',
+    ],
   },
 });
 
@@ -111,7 +116,12 @@ io.on('connection', (socket) => {
 
 app.use(
   cors({
-    origin: process.env.origin,
+    origin: [
+      'https://localhost:3000/',
+      'http://localhost:3000/',
+      'https://localhost:3000',
+      'http://localhost:3000',
+    ],
     credentials: true,
   })
 );
@@ -139,12 +149,10 @@ app.use('/api/v1/upload', (req, res) => {
     res.send({
       status: 'success',
       message: `${fileName} uploaded successfully`,
-      data : fileName
+      data: fileName,
     });
   });
 });
-
-
 
 // # Global Error Handling Middleware
 app.use((err, req, res, next) => {
