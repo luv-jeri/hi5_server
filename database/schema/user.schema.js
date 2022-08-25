@@ -26,10 +26,9 @@ const userSchema = new Schema(
     },
     requests: [
       {
-        type: Schema.Types.ObjectId,
+        type: Schema.Types.ObjectId, 
       },
     ],
-
     friends: [
       {
         type: Schema.Types.ObjectId,
@@ -46,11 +45,13 @@ const userSchema = new Schema(
       unique: true,
       lowercase: true,
       validate: [validator.isEmail, 'Please provide a valid email'],
+      index: true,
     },
-    // username: {
-    //   type: String,
-    //   unique: true,
-    // },
+    username: {
+      type: String,
+      unique: true,
+      index: true,
+    },
     photo: {
       type: String,
     },
@@ -88,5 +89,10 @@ const userSchema = new Schema(
     collection: 'user',
   }
 );
+
+userSchema.index({ name: 'text' });
+userSchema.index({ username: 'text' });
+userSchema.index({ username: 1 });
+userSchema.index({ email: 1 });
 
 module.exports = userSchema;

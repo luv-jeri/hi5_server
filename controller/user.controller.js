@@ -43,6 +43,9 @@ module.exports.lookup = catch_async(async (req, res, next) => {
   const { q } = req.query;
 
   const users = await User.find({
+    _id: {
+      $nin: req.user.friends,
+    },
     $or: [
       {
         name: {

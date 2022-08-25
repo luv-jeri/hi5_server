@@ -10,18 +10,20 @@ module.exports.request = catch_async(async (req, res, next) => {
   if (!id) return next(new _Error('Please provide Id of the pearson', 400));
 
   const friend = await User.findById(id);
+  if (!friend) return next(new _Error('No user found with this id', 404));
 
-  if (!friend) return next(new _Error('No user found with this Id', 404));
+  if (friend.friends.includes(req.user._id))
+    return next(new _Error('You are already friends', 400));
 
-  if (friend.requests.includes(req.user._id)) {
-    friend.requests = friend.requests.filter((request) => {
-      if (!request.equals(req.user._id)) return request;
-    });
-  } else {
-    friend.requests.push(req.user._id);
-  }
+  if (friend.blocked.includes(req.user._id))
+    return next(new _Error('You are blocked by this user', 400));
+
+  if (friend.requests.includes(req.user._id)) friend.requests.pull(req.user._id);
+  else friend.requests.push(req.user._id);
 
   await friend.save({ validateBeforeSave: false });
+
+  if (!friend) return next(new _Error('No user found with this Id', 404));
 
   res.status(200).json({
     status: 'success',
@@ -38,25 +40,22 @@ module.exports.accept = catch_async(async (req, res, next) => {
   if (!id) return next(new _Error('Please provide Id of the pearson', 400));
 
   const friend = await User.findById(id);
+  const user = await User.findById(req.user._id);
 
   if (!friend) return next(new _Error('No user found with this Id', 404));
+  if (!friend.requests.includes(user._id))
+    return next(new _Error('You have not received any request', 400));
+  if (friend.friends.includes(req.user._id))
+    return next(new _Error('You are already friends', 400));
+  if (req.user.friends.includes(req.user._id))
+    return next(new _Error('You are already friends', 400));
 
-  console.log(req.user.requests , id);
-
-  // if (!req.user.requests.includes(req.user._id))
-  //   return next(new _Error('You have not received any request from this user', 400));
-
-  req.user.friends.push(id);
   friend.friends.push(req.user._id);
+  friend.requests.pull(req.user._id);
+  user.friends.push(friend._id);
 
-  req.user.requests = req.user.requests.filter((request) => {
-    if (!request.equals(id)) return request;
-  });
-
-  await req.user.save({ validateBeforeSave: false });
+  await user.save({ validateBeforeSave: false });
   await friend.save({ validateBeforeSave: false });
-
-  console.log('DONE', res.user, friend);
 
   res.status(200).json({
     status: 'success',
@@ -66,17 +65,16 @@ module.exports.accept = catch_async(async (req, res, next) => {
 });
 
 module.exports.block = catch_async(async (req, res, next) => {
-  const { id } = req.params; // * Id of the person, to which request is going to be sent
+  const { id } = req.params;
 
   if (!id) return next(new _Error('Please provide Id of the pearson', 400));
 
-  if (req.user.blocked.includes(id)) {
-    req.user.blocked = req.user.blocked.filter((block) => {
-      if (!block.equals(id)) return block;
-    });
-  } else {
-    req.user.blocked.push(id);
-  }
+  const user = await User.findById(req.user._id);
+
+  if (user.friends.includes(id)) user.friends.pull(id);
+  if (user.requests.includes(id)) user.requests.pull(id);
+
+  user.blocked.push(id);
 
   await req.user.save({ validateBeforeSave: false });
 
