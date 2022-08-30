@@ -4,21 +4,25 @@ const catch_async = require('../utils/catch_async');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const send_mail = require('../utils/send_mail');
+const mongoose = require('mongoose');
 
 module.exports.signUp = catch_async(async (req, res, next) => {
-  const { name, email, password, confirmPassword, photo, username } = req.body;
+  const { name, email, password, confirmPassword, photo, push_token } = req.body;
 
   if (password !== confirmPassword) {
     return next(new _Error('Passwords do not match 😁😁', 400));
   }
+
+  const random_username = name + Math.random().toString(36).substring(7);
 
   const user = await User.create({
     name,
     email,
     password,
     confirmPassword,
-    username,
+    username: random_username,
     photo,
+    push_token,
   });
 
   const token = jwt.sign(
@@ -163,3 +167,5 @@ module.exports.resetPassword = catch_async(async (req, res, next) => {
     message: 'Password reset successfully',
   });
 });
+
+

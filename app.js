@@ -2,9 +2,11 @@ const express = require('express');
 const morgan = require('morgan');
 const cookieParser = require('cookie-parser');
 const cors = require('cors');
-
+const User = require('./database/models/user.model');
+const Message = require('./database/models/message.model');
 const { createServer } = require('http');
 const { Server } = require('socket.io');
+const admin = require('firebase-admin');
 
 const upload = require('express-fileupload');
 
@@ -12,6 +14,9 @@ const app = express();
 const server = createServer(app);
 const { promisify } = require('util');
 const jwt = require('jsonwebtoken');
+
+
+
 if (process.env.NODE_ENV === 'development') {
   app.use(morgan('dev'));
 }
@@ -31,6 +36,8 @@ app.use(
 app.use(upload());
 app.use(express.json());
 app.use(cookieParser());
+
+app.use()
 
 app.use(express.static('public'));
 
@@ -71,8 +78,6 @@ app.all('*', (req, res) => {
   });
 });
 
-module.exports = server;
-
 const io = new Server(server, {
   cors: {
     origin: [
@@ -84,74 +89,139 @@ const io = new Server(server, {
   },
 });
 
-// # Authenticate Middleware for socket
 io.use(async (socket, next) => {
   const { token } = socket.handshake.auth || '';
+  if (token) {
+    try {
+      const decoded = await promisify(jwt.verify)(token, process.env.JWT_SECRET);
 
-  try {
-    const decoded = await promisify(jwt.verify)(token, process.env.JWT_SECRET);
+      if (!decoded) {
+        return next(new Error('You are logged out.', 401));
+      }
 
-    if (!decoded) {
-      return next(new Error('You are logged out.', 401));
+      socket.decoded = decoded;
+      socket_user_map[decoded.id] = socket.id;
+
+      next();
+    } catch (err) {
+      console.log(err);
     }
-
-    socket.decoded = decoded;
-
-    next();
-  } catch (err) {
-    console.log(err);
   }
 });
+const socket_user_map = {};
 
-// //# last seen and socket io set
-// io.use(async (socket, next) => {
-//   const { decoded } = socket;
+io.use(async (socket, next) => {
+  const { decoded } = socket;
 
-//   const user = await User.findByIdAndUpdate(
-//     decoded.id,
-//     {
-//       online: true,
-//     },
-//     {
-//       new: true,
-//     }
-//   );
+  const user = await User.findByIdAndUpdate(
+    decoded.id,
+    {
+      online: true,
+      socket_id: socket.id,
+    },
+    {
+      new: true,
+    }
+  );
 
-//   //~ MAP socket id and user id
-//   socket_user_map[socket.id] = user._id;
+  //~ MAP socket id and user id
+  // socket_user_map[socket.id] = user._id;
 
-//   socket.user = user; // #mongodb data
+  socket.user = user; // #mongodb data
 
-//   if (!user) {
-//     return next(new Error('You are registered.', 401)); //* socket.emit("error" ,  error)
-//   }
+  if (!user) {
+    return next(new Error('You are registered.', 401)); //* socket.emit("error" ,  error)
+  }
 
-//   next();
-// });
+  next();
+});
 
-// io.on('connection', (socket) => {
-//   socket.on('disconnect', (reason) => {
-//     const { user, decoded } = socket;
+io.on('connection', (socket) => {
+  socket.on('disconnect', (reason) => {
+    const { user, decoded } = socket;
 
-//     User.findByIdAndUpdate(user._id, {
-//       online: false,
-//       lastSeen: Date.now(),
-//     }).then(() => {
-//       console.log(`${user.name} is offline`);
-//     });
-//   });
+    // socket_user_map.delete(socket.id);
 
-//   console.log('a user connected', socket.id);
+    User.findByIdAndUpdate(user._id, {
+      online: false,
+      lastSeen: Date.now(),
+    }).then(() => {
+      console.log(`${user.name} is offline`);
+    });
+  });
 
-//   socket.on('send_msg', async (data) => {
-//     console.log(data);
-//     console.log('socket_user_map', socket_user_map);
+  //# all the socket code for chatting
+  console.log(
+    'NEW USER',
+    'socket id : ',
+    socket.user.socket_id,
+    'User id : ',
+    socket.user._id
+  );
 
-//     const to = socket_user_map[data.to]; // # sokcet id from mongo id
+  socket.on('set-chat', async (data, cb) => {
+    const { to, text } = data;
 
-//     io.to(to).emit('msg', {
-//       msg: data.msg,
-//       name: data.name,
-//     });
-//   });
-// });
+    console.log('to', to);
+    console.log('text', text);
+    console.log('me', socket.decoded.id);
+    const to_socket = socket_user_map[to];
+    console.log('to_socket', to_socket);
+    console.log('my_socket', socket.id);
+
+    if (to_socket) {
+      socket.to(to_socket).emit('get-chat', { from: socket.decoded.id, text });
+    }
+
+    const friend = await User.findById(to);
+
+    const { push_token } = friend;
+
+    const payload = {
+      notification: {
+        title: 'New Message',
+        body: text,
+        icon: 'https://i.imgur.com/7k7GQeQ.png',
+      },
+    };
+
+    // admin
+    //   .messaging()
+    //   .sendToDevice([push_token], payload)
+    //   .then(() => {
+    //     console.log('notificaotin send');
+    //   })
+    //   .catch((e) => {
+    //     console.log(e);
+    //   });
+
+    Message.create({
+      from: socket.decoded.id,
+      to: to,
+      text,
+      time: Date.now(),
+      type: 'text',
+    });
+
+    cb(null, 'Message sent');
+  });
+
+  socket.on('get-msgs', async (data, cb) => {
+    const { friend, limit } = data;
+
+    const messages = await Message.find({
+      $or: [
+        { to: friend, by: socket.decoded.id },
+        { to: socket.decoded.id, by: friend },
+      ],
+    }).limit(limit);
+
+    if (!messages) {
+      socket.emit('e', new Error('something went wrong'));
+    }
+
+    cb(null, messages);
+  });
+});
+
+module.exports = server;

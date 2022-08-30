@@ -1,6 +1,7 @@
 const _Error = require('../utils/_Error');
 const User = require('../database/models/user.model');
 const catch_async = require('../utils/catch_async');
+const mongoose = require('mongoose');
 
 // # axios.post('/friends/6dt45308b)
 
@@ -36,23 +37,27 @@ module.exports.request = catch_async(async (req, res, next) => {
 
 module.exports.accept = catch_async(async (req, res, next) => {
   const { id } = req.params; // * Id of the person, to which request is going to be sent
-
+console.log(id)
   if (!id) return next(new _Error('Please provide Id of the pearson', 400));
 
   const friend = await User.findById(id);
   const user = await User.findById(req.user._id);
 
+  
+
   if (!friend) return next(new _Error('No user found with this Id', 404));
-  if (!friend.requests.includes(user._id))
+
+  if (!user.requests.includes(friend._id))
     return next(new _Error('You have not received any request', 400));
   if (friend.friends.includes(req.user._id))
     return next(new _Error('You are already friends', 400));
   if (req.user.friends.includes(req.user._id))
     return next(new _Error('You are already friends', 400));
 
-  friend.friends.push(req.user._id);
-  friend.requests.pull(req.user._id);
+  friend.friends.push(mongoose.Types.ObjectId(req.user._id));
   user.friends.push(friend._id);
+  
+  user.requests.pull(req.user._id);
 
   await user.save({ validateBeforeSave: false });
   await friend.save({ validateBeforeSave: false });
